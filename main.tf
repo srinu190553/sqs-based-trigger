@@ -116,6 +116,38 @@ resource "aws_cloudwatch_dashboard" "dashboard" {
     ]
   })
 }
+resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
+  alarm_name                = "scale-out-alarm"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = 2
+  metric_name               = "sqs-backlog-per-task"
+  namespace                 = "CustomNamespace"
+  period                    = 60
+  statistic                 = "Average"
+  threshold                 = 10
+  alarm_actions             = [aws_appautoscaling_policy.scale_out_policy.arn]
+  dimensions = {
+    ClusterName = aws_ecs_cluster.cluster.name
+    ServiceName = aws_ecs_service.service.name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
+  alarm_name                = "scale-in-alarm"
+  comparison_operator       = "LessThanOrEqualToThreshold"
+  evaluation_periods        = 2
+  metric_name               = "sqs-backlog-per-task"
+  namespace                 = "CustomNamespace"
+  period                    = 60
+  statistic                 = "Average"
+  threshold                 = 2
+  alarm_actions             = [aws_appautoscaling_policy.scale_in_policy.arn]
+  dimensions = {
+    ClusterName = aws_ecs_cluster.cluster.name
+    ServiceName = aws_ecs_service.service.name
+  }
+}
+
 
 resource "aws_appautoscaling_target" "ecs_service" {
   max_capacity       = 10
@@ -123,6 +155,44 @@ resource "aws_appautoscaling_target" "ecs_service" {
   resource_id        = "service/${aws_ecs_cluster.cluster.name}/${aws_ecs_service.service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+}
+resource "aws_appautoscaling_policy" "scale_out_policy" {
+  name               = "scale-out-policy"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment = 1
+      metric_interval_lower_bound = 0
+    }
+  }
+}
+
+# Create Scale In Policy
+resource "aws_appautoscaling_policy" "scale_in_policy" {
+  name               = "scale-in-policy"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment = -1
+      metric_interval_upper_bound = 0
+    }
+  }
 }
 
 # Create Target Tracking Scaling Policy
