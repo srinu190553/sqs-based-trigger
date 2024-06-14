@@ -109,18 +109,21 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   policy_type        = "TargetTrackingScaling"
 
   target_tracking_scaling_policy_configuration {
-    target_value       = 10.0
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    }
+    target_value = 10.0
+
     customized_metric_specification {
       metric_name = "sqs-backlog-per-task"
       namespace   = "CustomMetrics"
       statistic   = "Average"
 
-      dimensions = {
-        ClusterName = aws_ecs_cluster.cluster.name
-        ServiceName = aws_ecs_service.service.name
+      dimension {
+        name  = "ClusterName"
+        value = aws_ecs_cluster.cluster.name
+      }
+
+      dimension {
+        name  = "ServiceName"
+        value = aws_ecs_service.service.name
       }
     }
 
