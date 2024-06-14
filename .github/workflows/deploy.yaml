@@ -1,0 +1,71 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+permissions:
+      id-token: write
+      contents: read       
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: my-sqs-dynamodb-app
+      ECS_CLUSTER: my-cluster
+      ECS_SERVICE: my-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           role-to-assume: arn:aws:iam::933085737869:role/github-OIDC-Connect
+           aws-region: us-east-1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get Terraform Outputs
+        id: outputs
+        run: |
+          echo "sqs_queue_url=$(terraform output -raw sqs_queue_url)" >> $GITHUB_ENV
+          echo "dynamodb_table_name=$(terraform output -raw dynamodb_table_name)" >> $GITHUB_ENV
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Docker image
+        run: |
+          
+          docker build -t ${{ env.ECR_REPOSITORY }} .
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
+
+      - name: Inject environment variables into ECS task definition
+        run: |
+          task_definition=$(aws ecs describe-task-definition --task-definition my-task-family)
+          new_task_def=$(echo $task_definition | jq --arg QUEUE_URL ${{ env.sqs_queue_url }} --arg TABLE_NAME ${{ env.dynamodb_table_name }} '.taskDefinition | .containerDefinitions[0].environment |= map(if .name == "SQS_QUEUE_URL" then .value=$QUEUE_URL elif .name == "DYNAMODB_TABLE_NAME" then .value=$TABLE_NAME else . end)')
+          echo "$new_task_def" > new-task-def.json
+          aws ecs register-task-definition --cli-input-json file://new-task-def.json
