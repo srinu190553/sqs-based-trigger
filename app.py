@@ -16,26 +16,26 @@ def process_message(message):
 
 def main():
     while True:
-        try:
-            response = sqs.receive_message(
-                QueueUrl=QUEUE_URL,
-                MaxNumberOfMessages=10,
-                WaitTimeSeconds=20,
-            )
+        # try:
+        response = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            MaxNumberOfMessages=10,
+            WaitTimeSeconds=20,
+        )
 
-            if 'Messages' in response:
-                for message in response['Messages']:
-                    process_message(message)
-                    # Delete the processed message from the queue
-                    sqs.delete_message(
-                        QueueUrl=QUEUE_URL,
-                        ReceiptHandle=message['ReceiptHandle']
-                    )
-            else:
-                print("No messages received")
+        if 'Messages' in response:
+            for message in response['Messages']:
+                process_message(message)
+                # Delete the processed message from the queue
+                sqs.delete_message(
+                    QueueUrl=QUEUE_URL,
+                    ReceiptHandle=message['ReceiptHandle']
+                )
+        else:
+            print("No messages received")
 
-        except Exception as e:
-            print(f"Error processing SQS messages: {e}")
+        # except Exception as e:
+        #     print(f"Error processing SQS messages: {e}")
 
         time.sleep(10)
 
