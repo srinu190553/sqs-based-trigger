@@ -55,12 +55,15 @@ jobs:
 
       - name: Output ECS Task Definition ARN
         id: task_def_output
-        run: echo "::set-output name=task_def_arn::$(terraform output -json ecs_task_definition_arn)"
+        run: |
+          echo "ECS Task Definition ARN: $(terraform output ecs_task_definition_arn)"
+          echo "::set-output name=task_def_arn::$(terraform output -json ecs_task_definition_arn)"
 
       - name: Update ECS Service with New Task Definition
         run: |
           task_def_arn="${{ steps.task_def_output.outputs.task_def_arn }}"
-          aws ecs update-service --cluster my-cluster --service my-service --task-definition $task_def_arn
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --task-definition $task_def_arn
+
 
 
       - name: Monitor Deployment
