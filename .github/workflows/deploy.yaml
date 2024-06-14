@@ -55,7 +55,7 @@ jobs:
 
       - name: Output ECS Task Definition ARN
         id: task_def_output
-        run: echo "task_def_arn=arn:aws:ecs:us-east-1:933085737869:task-definition/my-task-family:1" >> $GITHUB_ENV
+        run: echo "task_def_arn=arn:aws:ecs:us-east-1:933085737869:task-definition/my-task-family:2" >> $GITHUB_ENV
 
     
 
