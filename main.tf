@@ -101,31 +101,70 @@ resource "aws_appautoscaling_target" "ecs_service" {
   service_namespace  = "ecs"
 }
 
+# Create Target Tracking Scaling Policy
 resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   name               = "ecs-service-target-tracking"
-  service_namespace  = "ecs"
+  policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  policy_type        = "TargetTrackingScaling"
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
 
   target_tracking_scaling_policy_configuration {
     target_value = 10.0
 
     customized_metric_specification {
-      metric_name = "sqs-backlog-per-task"
-      namespace   = "CustomMetrics"
-      statistic   = "Average"
+      metrics {
+        label = "Get the queue size (the number of messages waiting to be processed)"
+        id    = "m1"
 
-      dimensions {
-        dimension {
-          name  = "ClusterName"
-          value = aws_ecs_cluster.cluster.name
+        metric_stat {
+          metric {
+            metric_name = "ApproximateNumberOfMessagesVisible"
+            namespace   = "AWS/SQS"
+
+            dimensions {
+              name  = "QueueName"
+              value = aws_sqs_queue.queue.name
+            }
+          }
+
+          stat = "Sum"
         }
 
-        dimension {
-          name  = "ServiceName"
-          value = aws_ecs_service.service.name
+        return_data = false
+      }
+
+      metrics {
+        label = "Get the ECS running task count (the number of currently running tasks)"
+        id    = "m2"
+
+        metric_stat {
+          metric {
+            metric_name = "RunningTaskCount"
+            namespace   = "ECS/ContainerInsights"
+
+            dimensions {
+              name  = "ClusterName"
+              value = aws_ecs_cluster.cluster.name
+            }
+
+            dimensions {
+              name  = "ServiceName"
+              value = aws_ecs_service.service.name
+            }
+          }
+
+          stat = "Average"
         }
+
+        return_data = false
+      }
+
+      metrics {
+        label       = "Calculate the backlog per instance"
+        id          = "e1"
+        expression  = "m1 / m2"
+        return_data = true
       }
     }
 
@@ -133,6 +172,7 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     scale_out_cooldown = 60
   }
 }
+
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ecs-autoscaling-role"
 
