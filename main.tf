@@ -227,3 +227,8 @@ output "sqs_queue_url" {
 output "dynamodb_table_name" {
   value = aws_dynamodb_table.table.name
 }
+
+output "ecs_task_definition_arn" {
+  value = aws_ecs_task_definition.task.arn
+}
+
