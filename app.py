@@ -2,11 +2,13 @@ import boto3
 import os
 import time
 
-sqs = boto3.client('sqs')
-dynamodb = boto3.resource('dynamodb')
+# Initialize SQS and DynamoDB clients/resources
+sqs = boto3.client('sqs', region_name='us-east-1')  # Specify the correct region
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  # Specify the correct region
 
-QUEUE_URL = os.getenv('SQS_QUEUE_URL')
-TABLE_NAME = os.getenv('DYNAMODB_TABLE_NAME')
+# Define your SQS queue URL and DynamoDB table name
+QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/933085737869/my-sqs-queue"
+TABLE_NAME = "my-dynamodb-table"
 
 def process_message(message):
     table = dynamodb.Table(TABLE_NAME)
@@ -14,21 +16,26 @@ def process_message(message):
 
 def main():
     while True:
-        response = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            MaxNumberOfMessages=10,
-            WaitTimeSeconds=20,
-        )
+        try:
+            response = sqs.receive_message(
+                QueueUrl=QUEUE_URL,
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=20,
+            )
 
-        if 'Messages' in response:
-            for message in response['Messages']:
-                process_message(message)
-                sqs.delete_message(
-                    QueueUrl=QUEUE_URL,
-                    ReceiptHandle=message['ReceiptHandle']
-                )
-        else:
-            print("No messages received")
+            if 'Messages' in response:
+                for message in response['Messages']:
+                    process_message(message)
+                    # Delete the processed message from the queue
+                    sqs.delete_message(
+                        QueueUrl=QUEUE_URL,
+                        ReceiptHandle=message['ReceiptHandle']
+                    )
+            else:
+                print("No messages received")
+
+        except Exception as e:
+            print(f"Error processing SQS messages: {e}")
 
         time.sleep(10)
 
