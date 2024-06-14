@@ -14,8 +14,7 @@ RUN pip install boto3
 EXPOSE 80
 
 # Define environment variables
-ENV SQS_QUEUE_URL=
-ENV DYNAMODB_TABLE_NAME=
+
 
 # Run app.py when the container launches
 CMD ["python", "app.py"]
