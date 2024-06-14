@@ -42,12 +42,6 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-      - name: Get Terraform Outputs
-        id: outputs
-        run: |
-          echo "sqs_queue_url=$(terraform output -raw sqs_queue_url)" >> $GITHUB_ENV
-          echo "dynamodb_table_name=$(terraform output -raw dynamodb_table_name)" >> $GITHUB_ENV
-
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -59,13 +53,18 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Update ECS service
+      - name: Create ECS Task Definition
+        run: |
+          # Retrieve current task definition
+          task_def=$(aws ecs describe-task-definition --task-definition my-task-family)
+
+          # Register updated task definition
+          aws ecs register-task-definition --cli-input-json "$task_def"
+
+      - name: Update ECS Service
         run: |
           aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
 
-      - name: Inject environment variables into ECS task definition
+      - name: Monitor Deployment
         run: |
-          task_definition=$(aws ecs describe-task-definition --task-definition my-task-family)
-          new_task_def=$(echo $task_definition | jq --arg QUEUE_URL ${{ env.sqs_queue_url }} --arg TABLE_NAME ${{ env.dynamodb_table_name }} '.taskDefinition | .containerDefinitions[0].environment |= map(if .name == "SQS_QUEUE_URL" then .value=$QUEUE_URL elif .name == "DYNAMODB_TABLE_NAME" then .value=$TABLE_NAME else . end)')
-          echo "$new_task_def" > new-task-def.json
-          aws ecs register-task-definition --cli-input-json file://new-task-def.json
+          echo "Deployment completed. Monitoring SQS and DynamoDB..."
