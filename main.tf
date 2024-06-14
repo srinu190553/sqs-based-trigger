@@ -1,6 +1,3 @@
-provider "aws" {
-  region = "us-east-1"
-}
 
 # Create SQS Queue
 resource "aws_sqs_queue" "queue" {
