@@ -35,11 +35,11 @@ resource "aws_ecs_task_definition" "task" {
     environment = [
       {
         name = "SQS_QUEUE_URL"
-        value = ""
+        value = aws_sqs_queue.queue.id
       },
       {
         name = "DYNAMODB_TABLE_NAME"
-        value = ""
+        value = aws_dynamodb_table.table.name
       }
     ]
     logConfiguration = {
