@@ -54,7 +54,7 @@ jobs:
 
       - name: Build, tag, and push Docker image
         run: |
-          
+          aws ecr create-repository --repository-name my-sqs-dynamodb-app
           docker build -t ${{ env.ECR_REPOSITORY }} .
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
