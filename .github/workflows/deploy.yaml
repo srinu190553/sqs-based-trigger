@@ -60,7 +60,7 @@ jobs:
       - name: Update ECS Service with New Task Definition
         run: |
           task_def_arn="${{ steps.task_def_output.outputs.task_def_arn }}"
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --task-definition $task_def_arn
+          aws ecs update-service --cluster my-cluster --service my-service --task-definition $task_def_arn
 
 
       - name: Monitor Deployment
