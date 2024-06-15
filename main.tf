@@ -197,33 +197,28 @@ resource "aws_appautoscaling_policy" "scale_in_policy" {
     }
   }
 }
-
-# Create Target Tracking Scaling Policy
 resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   name               = "ecs-service-target-tracking"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
-  target_tracking_configuration {
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 10.0
+
     customized_metric_specification {
-      metric_dimension {
-        name  = "Project"
-        value = "SQSAutoScalingDemo"
-      }
       metric_name = "sqs-backlog-per-task"
       namespace   = "CustomMetrics"
       statistic   = "Average"
+
+      metric_dimension {
+         ClusterName = var.ecs_cluster_name
+         ServiceName = var.ecs_service_name
+      }
     }
-    // acceptable backlog per instance
-    target_value = 10
   }
 }
-
-
-
-   
-
 
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ecs-autoscaling-role"
