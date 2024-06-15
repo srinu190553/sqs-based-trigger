@@ -213,8 +213,8 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
       statistic   = "Average"
 
       metric_dimension {
-         ClusterName = var.ecs_cluster_name
-         ServiceName = var.ecs_service_name
+         name = var.ecs_cluster_name
+         value = var.ecs_service_name
       }
     }
   }
