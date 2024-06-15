@@ -197,6 +197,7 @@ resource "aws_appautoscaling_policy" "scale_in_policy" {
     }
   }
 }
+
 resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   name               = "ecs-service-target-tracking"
   policy_type        = "TargetTrackingScaling"
@@ -208,25 +209,66 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     target_value = 10.0
 
     customized_metric_specification {
-      metric_name = "sqs-backlog-per-task"
-      namespace   = "CustomMetrics"
-      statistic   = "Average"
+      metrics {
+        label = "Get the queue size (the number of messages waiting to be processed)"
+        id    = "m1"
 
-      metric_stat {
-        metric {
-          metric_name = "sqs-backlog-per-task"
-          namespace   = "CustomMetrics"
-          dimensions = {
-            ClusterName = aws_ecs_cluster.cluster.name
-            ServiceName = aws_ecs_service.service.name
+        metric_stat {
+          metric {
+            metric_name = "ApproximateNumberOfMessagesVisible"
+            namespace   = "AWS/SQS"
+
+            dimensions {
+              name  = "QueueName"
+              value = aws_sqs_queue.queue.name
+            }
           }
+
+          stat = "Sum"
         }
-        stat = "Average"
+
+        return_data = false
+      }
+
+      metrics {
+        label = "Get the ECS running task count (the number of currently running tasks)"
+        id    = "m2"
+
+        metric_stat {
+          metric {
+            metric_name = "RunningTaskCount"
+            namespace   = "ECS/ContainerInsights"
+
+            dimensions {
+              name  = "ClusterName"
+              value = aws_ecs_cluster.cluster.name
+            }
+
+            dimensions {
+              name  = "ServiceName"
+              value = aws_ecs_service.service.name
+            }
+          }
+
+          stat = "Average"
+        }
+
+        return_data = false
+      }
+
+      metrics {
+        label       = "Calculate the backlog per instance"
+        id          = "e1"
+        expression  = "m1 / m2"
+        return_data = true
       }
     }
+
+    scale_in_cooldown  = 60
+    scale_out_cooldown = 60
   }
 }
-
+  
 
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ecs-autoscaling-role"
