@@ -212,7 +212,7 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     customized_metric_specification {
       metric_name = "sqs-backlog-per-task"
       namespace   = "CustomMetrics"
-      statistic   = "Average"  # Corrected from 'stat' to 'statistic'
+      statistic   = "Average"
 
       metric_dimension {
         name  = "ClusterName"
@@ -224,10 +224,13 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
       }
     }
 
-    scale_in_cooldown  = 60  # These should be under target_tracking_scaling_policy_configuration
+    scale_in_cooldown  = 60
     scale_out_cooldown = 60
   }
 }
+
+
+   
 
 
 resource "aws_iam_role" "ecs_autoscaling_role" {
