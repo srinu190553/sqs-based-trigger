@@ -116,7 +116,41 @@ resource "aws_cloudwatch_dashboard" "dashboard" {
     ]
   })
 }
+resource "aws_cloudwatch_metric_alarm" "ecs_scale_out_alarm" {
+  alarm_name                = "ecs-scale-out-alarm"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = 1
+  metric_name               = "sqs-backlog-per-task"
+  namespace                 = "CustomMetrics"
+  period                    = 60
+  statistic                 = "Average"
+  threshold                 = 10
+  alarm_description         = "Alarm when SQS backlog per task is high"
+  dimensions = {
+    ClusterName = var.ecs_cluster_name
+    ServiceName = var.ecs_service_name
+  }
 
+  alarm_actions = [aws_appautoscaling_policy.scale_out_policy.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "ecs_scale_in_alarm" {
+  alarm_name                = "ecs-scale-in-alarm"
+  comparison_operator       = "LessThanOrEqualToThreshold"
+  evaluation_periods        = 1
+  metric_name               = "sqs-backlog-per-task"
+  namespace                 = "CustomMetrics"
+  period                    = 60
+  statistic                 = "Average"
+  threshold                 = 2
+  alarm_description         = "Alarm when SQS backlog per task is low"
+  dimensions = {
+    ClusterName = var.ecs_cluster_name
+    ServiceName = var.ecs_service_name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.scale_in_policy.arn]
+}
 
 resource "aws_appautoscaling_target" "ecs_service" {
   max_capacity       = 10
@@ -176,58 +210,22 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     target_value = 10.0
 
     customized_metric_specification {
-      metrics {
-        label = "Get the queue size (the number of messages waiting to be processed)"
-        id    = "m1"
-
-        metric_stat {
-          metric {
-            metric_name = "ApproximateNumberOfMessagesVisible"
-            namespace   = "AWS/SQS"
-
-            dimensions {
-              name  = "QueueName"
-              value = aws_sqs_queue.queue.name
-            }
-          }
-
-          stat = "Sum"
-        }
-
-        return_data = false
-      }
-
-      metrics {
-        label = "Get the ECS running task count (the number of currently running tasks)"
-        id    = "m2"
-
-        metric_stat {
-          metric {
-            metric_name = "RunningTaskCount"
-            namespace   = "ECS/ContainerInsights"
-
-            dimensions {
+      metric_stat {
+        metric {
+          metric_name = "sqs-backlog-per-task"
+          namespace   = "CustomMetrics"
+          dimensions = [
+            {
               name  = "ClusterName"
               value = aws_ecs_cluster.cluster.name
-            }
-
-            dimensions {
+            },
+            {
               name  = "ServiceName"
               value = aws_ecs_service.service.name
             }
-          }
-
-          stat = "Average"
+          ]
         }
-
-        return_data = false
-      }
-
-      metrics {
-        label       = "Calculate the backlog per instance"
-        id          = "e1"
-        expression  = "m1 / m2"
-        return_data = true
+        stat = "Average"
       }
     }
 
@@ -235,7 +233,6 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     scale_out_cooldown = 60
   }
 }
-
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ecs-autoscaling-role"
 
