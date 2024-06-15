@@ -214,13 +214,9 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
       namespace   = "CustomMetrics"
       statistic   = "Average"
 
-      metric_dimension {
-        name  = "ClusterName"
-        value = aws_ecs_cluster.cluster.name
-      }
-      metric_dimension {
-        name  = "ServiceName"
-        value = aws_ecs_service.service.name
+      metric_dimensions = {
+        ClusterName = aws_ecs_cluster.cluster.name
+        ServiceName = aws_ecs_service.service.name
       }
     }
 
@@ -228,6 +224,7 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
     scale_out_cooldown = 60
   }
 }
+
 
 
    
