@@ -116,37 +116,6 @@ resource "aws_cloudwatch_dashboard" "dashboard" {
     ]
   })
 }
-resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
-  alarm_name                = "scale-out-alarm"
-  comparison_operator       = "GreaterThanOrEqualToThreshold"
-  evaluation_periods        = 2
-  metric_name               = "sqs-backlog-per-task"
-  namespace                 = "CustomNamespace"
-  period                    = 60
-  statistic                 = "Average"
-  threshold                 = 10
-  alarm_actions             = [aws_appautoscaling_policy.scale_out_policy.arn]
-  dimensions = {
-    ClusterName = aws_ecs_cluster.cluster.name
-    ServiceName = aws_ecs_service.service.name
-  }
-}
-
-resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
-  alarm_name                = "scale-in-alarm"
-  comparison_operator       = "LessThanOrEqualToThreshold"
-  evaluation_periods        = 2
-  metric_name               = "sqs-backlog-per-task"
-  namespace                 = "CustomNamespace"
-  period                    = 60
-  statistic                 = "Average"
-  threshold                 = 2
-  alarm_actions             = [aws_appautoscaling_policy.scale_in_policy.arn]
-  dimensions = {
-    ClusterName = aws_ecs_cluster.cluster.name
-    ServiceName = aws_ecs_service.service.name
-  }
-}
 
 
 resource "aws_appautoscaling_target" "ecs_service" {
