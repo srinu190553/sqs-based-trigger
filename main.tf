@@ -205,7 +205,6 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
-
   target_tracking_configuration {
     customized_metric_specification {
       metric_dimension {
