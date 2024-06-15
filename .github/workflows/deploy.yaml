@@ -40,7 +40,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform destroy -auto-approve
+        run: terraform apply -auto-approve
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -53,19 +53,15 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Output ECS Task Definition ARN
-        id: task_def_output
-        run: echo "task_def_arn=arn:aws:ecs:us-east-1:933085737869:task-definition/my-task-family:2" >> $GITHUB_ENV
-
-    
-
-      - name: Update ECS Service with New Task Definition
+      - name: Get the latest task definition for the specified family
+        id: taskdef
         run: |
-          task_def_arn="${{ env.task_def_arn }}"
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --task-definition $task_def_arn
+           FAMILY_NAME="my-task-family"
+           LATEST_TASK_DEF_ARN=$(aws ecs list-task-definitions --family-prefix $FAMILY_NAME --sort DESC --query "taskDefinitionArns[0]" --output text)
+           echo "LATEST_TASK_DEF_ARN=$LATEST_TASK_DEF_ARN" >> $GITHUB_ENV
 
-
-
-      - name: Monitor Deployment
+      - name: Update ECS service with the new task definition
         run: |
-          echo "Deployment completed. Monitoring SQS and DynamoDB..."
+         CLUSTER_NAME="my-cluster"
+         SERVICE_NAME="my-service"
+         aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition ${{ env.LATEST_TASK_DEF_ARN }}
