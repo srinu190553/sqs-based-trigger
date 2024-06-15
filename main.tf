@@ -206,22 +206,18 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    target_value = 10.0
-
+  target_tracking_configuration {
     customized_metric_specification {
+      metric_dimension {
+        name  = "Project"
+        value = "SQSAutoScalingDemo"
+      }
       metric_name = "sqs-backlog-per-task"
       namespace   = "CustomMetrics"
       statistic   = "Average"
-
-      metric_dimensions = {
-        ClusterName = aws_ecs_cluster.cluster.name
-        ServiceName = aws_ecs_service.service.name
-      }
     }
-
-    scale_in_cooldown  = 60
-    scale_out_cooldown = 60
+    // acceptable backlog per instance
+    target_value = 10
   }
 }
 
