@@ -212,13 +212,21 @@ resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
       namespace   = "CustomMetrics"
       statistic   = "Average"
 
-      metric_dimension {
-         name = var.ecs_cluster_name
-         value = var.ecs_service_name
+      metric_stat {
+        metric {
+          metric_name = "sqs-backlog-per-task"
+          namespace   = "CustomMetrics"
+          dimensions = {
+            ClusterName = aws_ecs_cluster.cluster.name
+            ServiceName = aws_ecs_service.service.name
+          }
+        }
+        stat = "Average"
       }
     }
   }
 }
+
 
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ecs-autoscaling-role"
