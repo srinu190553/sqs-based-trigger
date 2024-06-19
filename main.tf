@@ -90,6 +90,63 @@ resource "aws_ecs_service" "service" {
     assign_public_ip = true 
   }
 }
+resource "aws_appautoscaling_policy" "scale_out_policy" {
+  name               = "scale-out-policy"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment = 1
+      metric_interval_lower_bound = 0
+    }
+  }
+}
+
+resource "aws_appautoscaling_policy" "scale_in_policy" {
+  name               = "scale-in-policy"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment = -1
+      metric_interval_upper_bound = 0
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "sqs_backlog_per_task_alarm" {
+  alarm_name          = "sqs-backlog-per-task-alarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "sqs-backlog-per-task"
+  namespace           = "CustomMetrics"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "10"
+  alarm_description   = "Alarm when SQS backlog per task is greater than 10"
+  dimensions = {
+    ServiceName = aws_ecs_service.service.name
+    ClusterName = aws_ecs_cluster.cluster.name
+  }
+
+  actions_enabled = true
+  alarm_actions   = [aws_appautoscaling_policy.scale_out_policy.arn]
+  ok_actions      = [aws_appautoscaling_policy.scale_in_policy.arn]
+}
 
 
 resource "aws_appautoscaling_target" "ecs_service" {
