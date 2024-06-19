@@ -90,8 +90,8 @@ resource "aws_ecs_service" "service" {
     assign_public_ip = true 
   }
 }
-resource "aws_appautoscaling_policy" "scale_out_policy" {
-  name               = "scale-out-policy"
+resource "aws_appautoscaling_policy" "sqs_scale_out_policy" {
+  name               = "sqs-scale-out-policy"
   policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
@@ -109,8 +109,8 @@ resource "aws_appautoscaling_policy" "scale_out_policy" {
   }
 }
 
-resource "aws_appautoscaling_policy" "scale_in_policy" {
-  name               = "scale-in-policy"
+resource "aws_appautoscaling_policy" "sqs_scale_in_policy" {
+  name               = "sqs-scale-in-policy"
   policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
