@@ -91,66 +91,6 @@ resource "aws_ecs_service" "service" {
   }
 }
 
-# Create CloudWatch Dashboard
-resource "aws_cloudwatch_dashboard" "dashboard" {
-  dashboard_name = "my-dashboard"
-  dashboard_body = jsonencode({
-    widgets = [
-      {
-        type = "metric",
-        x = 0,
-        y = 0,
-        width = 6,
-        height = 6,
-        properties = {
-          metrics = [
-            [ "AWS/SQS", "NumberOfMessagesReceived", "QueueName", aws_sqs_queue.queue.name ],
-            [ "AWS/DynamoDB", "PutItem", "TableName", aws_dynamodb_table.table.name ]
-          ],
-          period = 300,
-          stat = "Sum",
-          region = "us-east-1",
-          title = "Messages Processed and Items Created"
-        }
-      }
-    ]
-  })
-}
-resource "aws_cloudwatch_metric_alarm" "ecs_scale_out_alarm" {
-  alarm_name                = "ecs-scale-out-alarm"
-  comparison_operator       = "GreaterThanOrEqualToThreshold"
-  evaluation_periods        = 1
-  metric_name               = "sqs-backlog-per-task"
-  namespace                 = "CustomMetrics"
-  period                    = 60
-  statistic                 = "Average"
-  threshold                 = 10
-  alarm_description         = "Alarm when SQS backlog per task is high"
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = var.ecs_service_name
-  }
-
-  alarm_actions = [aws_appautoscaling_policy.scale_out_policy.arn]
-}
-
-resource "aws_cloudwatch_metric_alarm" "ecs_scale_in_alarm" {
-  alarm_name                = "ecs-scale-in-alarm"
-  comparison_operator       = "LessThanOrEqualToThreshold"
-  evaluation_periods        = 1
-  metric_name               = "sqs-backlog-per-task"
-  namespace                 = "CustomMetrics"
-  period                    = 60
-  statistic                 = "Average"
-  threshold                 = 2
-  alarm_description         = "Alarm when SQS backlog per task is low"
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = var.ecs_service_name
-  }
-
-  alarm_actions = [aws_appautoscaling_policy.scale_in_policy.arn]
-}
 
 resource "aws_appautoscaling_target" "ecs_service" {
   max_capacity       = 10
