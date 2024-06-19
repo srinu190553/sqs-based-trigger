@@ -91,7 +91,7 @@ resource "aws_ecs_service" "service" {
   }
 }
 resource "aws_appautoscaling_policy" "scale_out_policy" {
-  name               = "scale-out-policy"
+  name               = "sqs-scale-out-policy"
   policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
@@ -172,44 +172,6 @@ resource "aws_appautoscaling_target" "ecs_service" {
   resource_id        = "service/${aws_ecs_cluster.cluster.name}/${aws_ecs_service.service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
-}
-resource "aws_appautoscaling_policy" "scale_out_policy" {
-  name               = "scale-out-policy"
-  policy_type        = "StepScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
-
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
-    metric_aggregation_type = "Average"
-
-    step_adjustment {
-      scaling_adjustment = 1
-      metric_interval_lower_bound = 0
-    }
-  }
-}
-
-# Create Scale In Policy
-resource "aws_appautoscaling_policy" "scale_in_policy" {
-  name               = "scale-in-policy"
-  policy_type        = "StepScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
-
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
-    metric_aggregation_type = "Average"
-
-    step_adjustment {
-      scaling_adjustment = -1
-      metric_interval_upper_bound = 0
-    }
-  }
 }
 
 resource "aws_appautoscaling_policy" "ecs_service_target_tracking" {
