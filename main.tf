@@ -126,7 +126,7 @@ resource "aws_appautoscaling_policy" "scale_out_policy" {
     }
   }
 }
-resource "aws_appautoscaling_policy" "sqs_scale_in_policy" {
+resource "aws_appautoscaling_policy" "scale_in_policy" {
   name               = "sqs-scale-in-policy"
   policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
