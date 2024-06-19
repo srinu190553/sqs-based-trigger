@@ -90,8 +90,8 @@ resource "aws_ecs_service" "service" {
     assign_public_ip = true 
   }
 }
-resource "aws_appautoscaling_policy" "sqs_scale_out_policy" {
-  name               = "sqs-scale-out-policy"
+resource "aws_appautoscaling_policy" "scale_out_policy" {
+  name               = "scale-out-policy"
   policy_type        = "StepScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
@@ -103,12 +103,29 @@ resource "aws_appautoscaling_policy" "sqs_scale_out_policy" {
     metric_aggregation_type = "Average"
 
     step_adjustment {
-      scaling_adjustment = 1
       metric_interval_lower_bound = 0
+      metric_interval_upper_bound = 10
+      scaling_adjustment          = 1
+    }
+
+    step_adjustment {
+      metric_interval_lower_bound = 10
+      metric_interval_upper_bound = 20
+      scaling_adjustment          = 2
+    }
+
+    step_adjustment {
+      metric_interval_lower_bound = 20
+      metric_interval_upper_bound = 30
+      scaling_adjustment          = 3
+    }
+
+    step_adjustment {
+      metric_interval_lower_bound = 30
+      scaling_adjustment          = 4
     }
   }
 }
-
 resource "aws_appautoscaling_policy" "sqs_scale_in_policy" {
   name               = "sqs-scale-in-policy"
   policy_type        = "StepScaling"
@@ -118,7 +135,7 @@ resource "aws_appautoscaling_policy" "sqs_scale_in_policy" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
+    cooldown                = 300
     metric_aggregation_type = "Average"
 
     step_adjustment {
@@ -131,12 +148,12 @@ resource "aws_appautoscaling_policy" "sqs_scale_in_policy" {
 resource "aws_cloudwatch_metric_alarm" "sqs_backlog_per_task_alarm" {
   alarm_name          = "sqs-backlog-per-task-alarm"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "1"
+  evaluation_periods  = 1
   metric_name         = "sqs-backlog-per-task"
   namespace           = "CustomMetrics"
-  period              = "60"
+  period              = 60
   statistic           = "Average"
-  threshold           = "10"
+  threshold           = 10
   alarm_description   = "Alarm when SQS backlog per task is greater than 10"
   dimensions = {
     ServiceName = aws_ecs_service.service.name
