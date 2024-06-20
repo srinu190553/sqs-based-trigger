@@ -33,7 +33,7 @@ resource "aws_ecs_service" "service" {
   name            = "td-sqs-trigger"
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = data.aws_ecs_task_definition.latest.arn
-  desired_count   = 0
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -51,7 +51,7 @@ resource "aws_appautoscaling_policy" "scale_out_policy" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 30
+    cooldown                = 300
     metric_aggregation_type = "Average"
 
     step_adjustment {
@@ -87,7 +87,7 @@ resource "aws_appautoscaling_policy" "scale_in_policy" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 200
+    cooldown                = 300
     metric_aggregation_type = "Average"
 
     step_adjustment {
@@ -120,7 +120,7 @@ resource "aws_cloudwatch_metric_alarm" "sqs_backlog_per_task_alarm" {
 
 resource "aws_appautoscaling_target" "ecs_service" {
   max_capacity       = 10
-  min_capacity       = 0
+  min_capacity       = 1
   resource_id        = "service/${aws_ecs_cluster.cluster.name}/${aws_ecs_service.service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
