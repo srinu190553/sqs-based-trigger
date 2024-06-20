@@ -55,6 +55,6 @@ jobs:
 
       - name: Update ECS service with the new task definition
         run: |
-         CLUSTER_NAME="my-cluster"
-         SERVICE_NAME="my-service"
+         CLUSTER_NAME="td-sqs-trigger"
+         SERVICE_NAME="td-sqs-trigger"
          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition ${{ env.LATEST_TASK_DEF_ARN }}
