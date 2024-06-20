@@ -2,6 +2,10 @@
 resource "aws_ecs_cluster" "cluster" {
   name = "td-sqs-trigger"
 }
+data "aws_ecs_task_definition" "latest" {
+  task_definition = "td_MPulseQSInitial" # Replace with your task family name
+}
+
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "ecs_task_execution_role"
 
@@ -28,8 +32,8 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 resource "aws_ecs_service" "service" {
   name            = "td-sqs-trigger"
   cluster         = aws_ecs_cluster.cluster.id
-  task_definition = aws_ecs_task_definition.task.arn
-  desired_count   = 1
+  task_definition = data.aws_ecs_task_definition.latest.arn
+  desired_count   = 0
   launch_type     = "FARGATE"
 
   network_configuration {
