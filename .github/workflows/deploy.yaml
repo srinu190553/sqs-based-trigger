@@ -13,8 +13,8 @@ jobs:
     env:
       AWS_REGION: us-east-1
       ECR_REPOSITORY: my-sqs-dynamodb-app
-      ECS_CLUSTER: my-cluster
-      ECS_SERVICE: my-service
+      ECS_CLUSTER: td-sqs-trigger
+      ECS_SERVICE: td-sqs-trigger
 
     steps:
       - name: Checkout code
@@ -46,17 +46,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push Docker image
-        run: |
-          
-          docker build -t ${{ env.ECR_REPOSITORY }} .
-          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-
       - name: Get the latest task definition for the specified family
         id: taskdef
         run: |
-           FAMILY_NAME="my-task-family"
+           FAMILY_NAME="td_MPulseQSInitial"
            LATEST_TASK_DEF_ARN=$(aws ecs list-task-definitions --family-prefix $FAMILY_NAME --sort DESC --query "taskDefinitionArns[0]" --output text)
            echo "LATEST_TASK_DEF_ARN=$LATEST_TASK_DEF_ARN" >> $GITHUB_ENV
 
