@@ -1,6 +1,6 @@
 # Create ECS Cluster
 resource "aws_ecs_cluster" "cluster" {
-  name = "td-sqs-trigger"
+  name = "cluster_qs"
 }
 data "aws_ecs_task_definition" "latest" {
   task_definition = "td_MPulseQSInitial" # Replace with your task family name
@@ -30,7 +30,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 
 # Create ECS Service
 resource "aws_ecs_service" "service" {
-  name            = "td-sqs-trigger"
+  name            = "service_qs"
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = data.aws_ecs_task_definition.latest.arn
   desired_count   = 1
