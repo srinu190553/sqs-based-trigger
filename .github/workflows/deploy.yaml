@@ -10,12 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      AWS_REGION: us-east-1
-      ECR_REPOSITORY: my-sqs-dynamodb-app
-      ECS_CLUSTER: td-sqs-trigger
-      ECS_SERVICE: td-sqs-trigger
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -41,20 +35,3 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Get the latest task definition for the specified family
-        id: taskdef
-        run: |
-           FAMILY_NAME="td_MPulseQSInitial"
-           LATEST_TASK_DEF_ARN=$(aws ecs list-task-definitions --family-prefix $FAMILY_NAME --sort DESC --query "taskDefinitionArns[0]" --output text)
-           echo "LATEST_TASK_DEF_ARN=$LATEST_TASK_DEF_ARN" >> $GITHUB_ENV
-
-      - name: Update ECS service with the new task definition
-        run: |
-         CLUSTER_NAME="td-sqs-trigger"
-         SERVICE_NAME="td-sqs-trigger"
-         aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition ${{ env.LATEST_TASK_DEF_ARN }}
